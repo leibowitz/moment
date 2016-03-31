@@ -1,8 +1,8 @@
 package moment
 
 import (
-	"testing"
 	"reflect"
+	"testing"
 	"time"
 )
 
@@ -44,6 +44,47 @@ func TestStartOfDay(t *testing.T) {
 	for _, test := range testCases {
 
 		res := test.before.StartOfDay()
+
+		if !reflect.DeepEqual(res, test.after) {
+			t.Errorf("Moment %s does not match expected %s", res.time.String(), test.after.time.String())
+		}
+	}
+}
+
+// Test some times at the end of the day with some daylight savings
+func TestEndOfDay(t *testing.T) {
+
+	lon, _ := time.LoadLocation("Europe/London")
+
+	testCases := []struct {
+		before *Moment
+		after  *Moment
+	}{
+		{
+			// Clocks +1 hour
+			before: NewMoment(time.Date(2015, 3, 29, 0, 0, 0, 0, lon)),
+			after:  NewMoment(time.Date(2015, 3, 29, 23, 59, 0, 0, lon)),
+		},
+		{
+			// Clocks -1 hour
+			before: NewMoment(time.Date(2015, 10, 25, 2, 0, 0, 0, lon)),
+			after:  NewMoment(time.Date(2015, 10, 25, 23, 59, 0, 0, lon)),
+		},
+		{
+			// Clocks -1 hour (same as above)
+			before: NewMoment(time.Date(2015, 10, 25, 12, 0, 0, 0, lon)),
+			after:  NewMoment(time.Date(2015, 10, 25, 23, 59, 0, 0, lon)),
+		},
+		{
+			// Clocks no change
+			before: NewMoment(time.Date(2016, 1, 01, 10, 0, 0, 0, lon)),
+			after:  NewMoment(time.Date(2016, 1, 01, 23, 59, 0, 0, lon)),
+		},
+	}
+
+	for _, test := range testCases {
+
+		res := test.before.EndOfDay()
 
 		if !reflect.DeepEqual(res, test.after) {
 			t.Errorf("Moment %s does not match expected %s", res.time.String(), test.after.time.String())
@@ -139,7 +180,7 @@ func TestNextLast(t *testing.T) {
 	if nextMonday != n {
 		t.Fatalf("Expected next monday to be %v, got %v instead", nextMonday, n)
 	}
-	
+
 	// last monday
 	d = time.Date(2016, 1, 30, 23, 59, 59, 0, time.UTC)
 	lastMonday := time.Date(2016, 1, 25, 23, 59, 59, 0, time.UTC)
@@ -147,7 +188,7 @@ func TestNextLast(t *testing.T) {
 	if lastMonday != n {
 		t.Fatalf("Expected last monday to be %v, got %v instead", lastMonday, n)
 	}
-	
+
 	// next week
 	d = time.Date(2016, 1, 30, 23, 59, 59, 0, time.UTC)
 	nextWeek := time.Date(2016, 2, 6, 23, 59, 59, 0, time.UTC)
@@ -155,7 +196,7 @@ func TestNextLast(t *testing.T) {
 	if nextWeek != n {
 		t.Fatalf("Expected next week to be %v, got %v instead", nextWeek, n)
 	}
-	
+
 	// last week
 	d = time.Date(2016, 1, 30, 23, 59, 59, 0, time.UTC)
 	lastWeek := time.Date(2016, 1, 23, 23, 59, 59, 0, time.UTC)
@@ -163,7 +204,7 @@ func TestNextLast(t *testing.T) {
 	if lastWeek != n {
 		t.Fatalf("Expected last week to be %v, got %v instead", lastWeek, n)
 	}
-	
+
 	// next month
 	d = time.Date(2016, 1, 30, 23, 59, 59, 0, time.UTC)
 	nextMonth := time.Date(2016, 3, 1, 23, 59, 59, 0, time.UTC)
@@ -171,7 +212,7 @@ func TestNextLast(t *testing.T) {
 	if nextMonth != n {
 		t.Fatalf("Expected next month to be %v, got %v instead", nextMonth, n)
 	}
-	
+
 	// last month
 	d = time.Date(2016, 1, 30, 23, 59, 59, 0, time.UTC)
 	lastMonth := time.Date(2015, 12, 30, 23, 59, 59, 0, time.UTC)
@@ -179,7 +220,7 @@ func TestNextLast(t *testing.T) {
 	if lastMonth != n {
 		t.Fatalf("Expected last month to be %v, got %v instead", lastMonth, n)
 	}
-	
+
 	// next year
 	d = time.Date(2016, 1, 30, 23, 59, 59, 0, time.UTC)
 	nextYear := time.Date(2017, 1, 30, 23, 59, 59, 0, time.UTC)
@@ -187,7 +228,7 @@ func TestNextLast(t *testing.T) {
 	if nextYear != n {
 		t.Fatalf("Expected next year to be %v, got %v instead", nextYear, n)
 	}
-	
+
 	// last year
 	d = time.Date(2016, 1, 30, 23, 59, 59, 0, time.UTC)
 	lastYear := time.Date(2015, 1, 30, 23, 59, 59, 0, time.UTC)
@@ -231,7 +272,7 @@ func TestAgo(t *testing.T) {
 	if newDate != n {
 		t.Fatalf("Expected an month ago to be %v, got %v instead", newDate, n)
 	}
-	
+
 	// one year ago
 	d = time.Date(2016, 1, 30, 23, 59, 59, 0, time.UTC)
 	newDate = time.Date(2015, 1, 30, 23, 59, 59, 0, time.UTC)
