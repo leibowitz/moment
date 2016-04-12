@@ -1,6 +1,8 @@
 moment
 ======
 
+[![Build Status](https://travis-ci.org/leibowitz/moment.svg?branch=master)](https://travis-ci.org/leibowitz/moment)
+
 Port of moment.js to Go (Golang) with some additional features for working with dates and times. Also some major inspiration from Carbon as well as some custom functions.
 
 Supports custom formats (i.e. YYYY-MM-DD instead of Go's 2006-01-02) - currently the moment format and strftime formats are supported.

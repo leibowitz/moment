@@ -818,7 +818,15 @@ func (m *Moment) EndOf(key string) *Moment {
 // Carbon
 func (m *Moment) EndOfDay() *Moment {
 	if m.Hour() < 23 {
+		_, timeOffset := m.GetTime().Zone()
 		m.AddHours(23 - m.Hour())
+
+		_, newTimeOffset := m.GetTime().Zone()
+		diffOffset := newTimeOffset - timeOffset
+		if diffOffset != 0 {
+			// we need to adjust for time zone difference
+			m.SubSeconds(diffOffset)
+		}
 	}
 
 	return m.EndOf("hour")
