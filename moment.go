@@ -104,7 +104,7 @@ func (m *Moment) GetTime() time.Time {
 }
 
 func (m *Moment) Now() *Moment {
-	m.time = time.Now()
+	m.time = time.Now().In(m.GetTime().Location())
 
 	return m
 }
