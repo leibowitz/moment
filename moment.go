@@ -33,18 +33,18 @@ const (
 )
 
 var (
-	regex_days = "monday|mon|tuesday|tues|wednesday|wed|thursday|thurs|friday|fri|saturday|sat|sunday|sun"
-	regex_period = "second|minute|hour|day|week|month|year"
+	regex_days    = "monday|mon|tuesday|tues|wednesday|wed|thursday|thurs|friday|fri|saturday|sat|sunday|sun"
+	regex_period  = "second|minute|hour|day|week|month|year"
 	regex_numbers = "one|two|three|four|five|six|seven|eight|nine|ten"
 )
 
 // regexp
 var (
-	compiled       = regexp.MustCompile(`\s{2,}`)
-	relativeday    = regexp.MustCompile(`(yesterday|today|tomorrow)`)
+	compiled    = regexp.MustCompile(`\s{2,}`)
+	relativeday = regexp.MustCompile(`(yesterday|today|tomorrow)`)
 	//relative1      = regexp.MustCompile(`(first|last) day of (this|next|last|previous) (week|month|year)`)
 	//relative2      = regexp.MustCompile(`(first|last) day of (` + "jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|september|oct|october|nov|november|dec|december" + `)(?:\s(\d{4,4}))?`)
-	relative3      = regexp.MustCompile(`((?P<relperiod>this|next|last|previous) )?(` + regex_days + `)`)
+	relative3 = regexp.MustCompile(`((?P<relperiod>this|next|last|previous) )?(` + regex_days + `)`)
 	//relativeval    = regexp.MustCompile(`([0-9]+) (day|week|month|year)s? ago`)
 	ago            = regexp.MustCompile(`([0-9]+) (` + regex_period + `)s? ago`)
 	ordinal        = regexp.MustCompile("([0-9]+)(st|nd|rd|th)")
@@ -911,7 +911,15 @@ func (m *Moment) EndOf(key string) *Moment {
 // Carbon
 func (m *Moment) EndOfDay() *Moment {
 	if m.Hour() < 23 {
+		_, timeOffset := m.GetTime().Zone()
 		m.AddHours(23 - m.Hour())
+
+		_, newTimeOffset := m.GetTime().Zone()
+		diffOffset := newTimeOffset - timeOffset
+		if diffOffset != 0 {
+			// we need to adjust for time zone difference
+			m.SubSeconds(diffOffset)
+		}
 	}
 
 	return m.EndOf("hour")
