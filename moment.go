@@ -465,11 +465,17 @@ func (m *Moment) MilliSecond() int {
 	return m.GetTime().Nanosecond() / int(time.Millisecond)
 }
 
-func (m *Moment) MicroSecond() int {
+func (m *Moment) MicroSecond(onlyMicro bool) int {
+	if onlyMicro {
+		return (m.GetTime().Nanosecond() / int(time.Microsecond)) % 1000
+	}
 	return m.GetTime().Nanosecond() / int(time.Microsecond)
 }
 
-func (m *Moment) NanoSecond() int {
+func (m *Moment) NanoSecond(onlyNano bool) int {
+	if onlyNano {
+		return m.GetTime().Nanosecond() % 1000
+	}
 	return m.GetTime().Nanosecond()
 }
 
@@ -807,15 +813,15 @@ func (m *Moment) StartOf(key string) *Moment {
 		m.StartOf("millisecond")
 
 	case "millisecond", "ms":
-		if m.MicroSecond() > 0 {
-			m.SubMicroSeconds(m.MicroSecond())
+		if m.MicroSecond(true) > 0 {
+			m.SubMicroSeconds(m.MicroSecond(true))
 		}
 
 		m.StartOf("microsecond")
 
 	case "microsecond", "us":
-		if m.NanoSecond() > 0 {
-			m.SubNanoSeconds(m.NanoSecond())
+		if m.NanoSecond(true) > 0 {
+			m.SubNanoSeconds(m.NanoSecond(true))
 		}
 
 		m.StartOf("nanosecond")
@@ -890,14 +896,14 @@ func (m *Moment) EndOf(key string) *Moment {
 
 		m.EndOf("millisecond")
 	case "millisecond", "ms":
-		if m.MicroSecond() < 999 {
-			m.AddMicroSeconds(999 - m.MicroSecond())
+		if m.MicroSecond(true) < 999 {
+			m.AddMicroSeconds(999 - m.MicroSecond(true))
 		}
 
 		m.EndOf("microsecond")
 	case "microsecond", "us":
-		if m.MilliSecond() < 999 {
-			m.AddMilliSeconds(999 - m.MilliSecond())
+		if m.NanoSecond(true) < 999 {
+			m.AddNanoSeconds(999 - m.NanoSecond(true))
 		}
 
 		m.EndOf("nanosecond")
@@ -1014,7 +1020,7 @@ func (m *Moment) GoBackToMonth(month time.Month, previous bool) *Moment {
 
 func (m *Moment) SetNanoSecond(nanoseconds int) *Moment {
 	if nanoseconds >= 0 && nanoseconds <= 1000000000 {
-		return m.AddNanoSeconds(nanoseconds - m.NanoSecond())
+		return m.AddNanoSeconds(nanoseconds - m.NanoSecond(false))
 	}
 
 	return m
