@@ -63,22 +63,22 @@ func TestEndOfDay(t *testing.T) {
 		{
 			// Clocks +1 hour
 			before: NewMoment(time.Date(2015, 3, 29, 0, 0, 0, 0, lon)),
-			after:  NewMoment(time.Date(2015, 3, 29, 23, 59, 0, 0, lon)),
+			after:  NewMoment(time.Date(2015, 3, 29, 23, 59, 59, 999999999, lon)),
 		},
 		{
 			// Clocks -1 hour
 			before: NewMoment(time.Date(2015, 10, 25, 2, 0, 0, 0, lon)),
-			after:  NewMoment(time.Date(2015, 10, 25, 23, 59, 0, 0, lon)),
+			after:  NewMoment(time.Date(2015, 10, 25, 23, 59, 59, 999999999, lon)),
 		},
 		{
 			// Clocks -1 hour (same as above)
 			before: NewMoment(time.Date(2015, 10, 25, 12, 0, 0, 0, lon)),
-			after:  NewMoment(time.Date(2015, 10, 25, 23, 59, 0, 0, lon)),
+			after:  NewMoment(time.Date(2015, 10, 25, 23, 59, 59, 999999999, lon)),
 		},
 		{
 			// Clocks no change
 			before: NewMoment(time.Date(2016, 1, 01, 10, 0, 0, 0, lon)),
-			after:  NewMoment(time.Date(2016, 1, 01, 23, 59, 0, 0, lon)),
+			after:  NewMoment(time.Date(2016, 1, 01, 23, 59, 59, 999999999, lon)),
 		},
 	}
 

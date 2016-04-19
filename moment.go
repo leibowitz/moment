@@ -50,7 +50,7 @@ var (
 	ordinal        = regexp.MustCompile("([0-9]+)(st|nd|rd|th)")
 	written        = regexp.MustCompile(regex_numbers)
 	relativediff   = regexp.MustCompile(`([\+\-])?([0-9]+),? ?(` + regex_period + `)s?`)
-	relativetime   = regexp.MustCompile(`(?P<hour>\d\d?):(?P<minutes>\d\d?)(:(?P<seconds>\d\d?))?\s?(?P<meridiem>am|pm)?\s?(?P<zone>[a-z]{3,3})?|(?P<relativetime>noon|midnight)`)
+	relativetime   = regexp.MustCompile(`(?P<hour>\d\d?):(?P<minutes>\d\d?)(:(?P<seconds>\d\d?))?(.(?P<nanoseconds>\d{1,9}))?\s?(?P<meridiem>am|pm)?\s?(?P<zone>[a-z]{3,3})?|(?P<relativetime>noon|midnight)`)
 	yearmonthday   = regexp.MustCompile(`(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})`)
 	relativeperiod = regexp.MustCompile(`(?P<relperiod>this|next|last) (week|month|year)`)
 	numberRegex    = regexp.MustCompile("([0-9]+)(?:<stdOrdinal>)")
@@ -218,9 +218,10 @@ func (m *Moment) Strtotime(str string) *Moment {
 
 	// Try to parse out time from the string
 	var timeDefaults = map[string]int{
-		"hour":    0,
-		"minutes": 0,
-		"seconds": 0,
+		"hour":        0,
+		"minutes":     0,
+		"seconds":     0,
+		"nanoseconds": 0,
 	}
 
 	timeMatches := timeDefaults
@@ -249,7 +250,10 @@ func (m *Moment) Strtotime(str string) *Moment {
 				timeMatches["hour"] += 12
 			}
 
-			if name == "hour" || name == "minutes" || name == "seconds" {
+			if name == "hour" || name == "minutes" || name == "seconds" || name == "nanoseconds" {
+				if name == "nanoseconds" {
+					match[i] = rightPad2Len(match[i], "0", 9)
+				}
 				timeMatches[name], _ = strconv.Atoi(match[i])
 			}
 		}
@@ -434,7 +438,7 @@ func (m *Moment) Strtotime(str string) *Moment {
 
 // @todo deal with timezone
 func (m *Moment) strtotimeSetTime(time map[string]int, zone string) {
-	m.SetHour(time["hour"]).SetMinute(time["minutes"]).SetSecond(time["seconds"])
+	m.SetHour(time["hour"]).SetMinute(time["minutes"]).SetSecond(time["seconds"]).SetNanoSecond(time["nanoseconds"])
 }
 
 func (m *Moment) strtotimeSetDate(date map[string]int) {
@@ -453,12 +457,26 @@ func (m Moment) Clone() *Moment {
  *
  */
 // https://groups.google.com/forum/#!topic/golang-nuts/pret7hjDc70
-func (m *Moment) Millisecond() {
-
-}
-
 func (m *Moment) Second() int {
 	return m.GetTime().Second()
+}
+
+func (m *Moment) MilliSecond() int {
+	return m.GetTime().Nanosecond() / int(time.Millisecond)
+}
+
+func (m *Moment) MicroSecond(onlyMicro bool) int {
+	if onlyMicro {
+		return (m.GetTime().Nanosecond() / int(time.Microsecond)) % 1000
+	}
+	return m.GetTime().Nanosecond() / int(time.Microsecond)
+}
+
+func (m *Moment) NanoSecond(onlyNano bool) int {
+	if onlyNano {
+		return m.GetTime().Nanosecond() % 1000
+	}
+	return m.GetTime().Nanosecond()
 }
 
 func (m *Moment) Minute() int {
@@ -593,10 +611,30 @@ func (m *Moment) Add(key string, value int) *Moment {
 	case "seconds", "second", "s":
 		m.AddSeconds(value)
 	case "milliseconds", "millisecond", "ms":
+		m.AddMilliSeconds(value)
+	case "microseconds", "microsecond", "us":
+		m.AddMicroSeconds(value)
+	case "nanoseconds", "nanosecond", "ns":
+		m.AddNanoSeconds(value)
 
 	}
 
 	return m
+}
+
+// Carbon
+func (m *Moment) AddNanoSeconds(ns int) *Moment {
+	return m.addTime(time.Nanosecond * time.Duration(ns))
+}
+
+// Carbon
+func (m *Moment) AddMicroSeconds(us int) *Moment {
+	return m.addTime(time.Microsecond * time.Duration(us))
+}
+
+// Carbon
+func (m *Moment) AddMilliSeconds(ms int) *Moment {
+	return m.addTime(time.Millisecond * time.Duration(ms))
 }
 
 // Carbon
@@ -668,6 +706,11 @@ func (m *Moment) Subtract(key string, value int) *Moment {
 	case "seconds", "second", "s":
 		m.SubSeconds(value)
 	case "milliseconds", "millisecond", "ms":
+		m.SubMilliSeconds(value)
+	case "microseconds", "microsecond", "us":
+		m.SubMicroSeconds(value)
+	case "nanoseconds", "nanosecond", "ns":
+		m.SubNanoSeconds(value)
 
 	}
 
@@ -677,6 +720,18 @@ func (m *Moment) Subtract(key string, value int) *Moment {
 // Carbon
 func (m *Moment) SubSeconds(seconds int) *Moment {
 	return m.addTime(time.Second * time.Duration(seconds*-1))
+}
+
+func (m *Moment) SubMilliSeconds(ms int) *Moment {
+	return m.addTime(time.Millisecond * time.Duration(ms*-1))
+}
+
+func (m *Moment) SubMicroSeconds(us int) *Moment {
+	return m.addTime(time.Microsecond * time.Duration(us*-1))
+}
+
+func (m *Moment) SubNanoSeconds(ns int) *Moment {
+	return m.addTime(time.Nanosecond * time.Duration(ns*-1))
 }
 
 // Carbon
@@ -743,14 +798,36 @@ func (m *Moment) StartOf(key string) *Moment {
 			m.SubMinutes(m.Minute())
 		}
 
-		if m.Second() > 0 {
-			m.SubSeconds(m.Second())
-		}
+		m.StartOf("minute")
 	case "minute", "m":
 		if m.Second() > 0 {
 			m.SubSeconds(m.Second())
 		}
+
+		m.StartOf("second")
 	case "second", "s":
+		if m.MilliSecond() > 0 {
+			m.SubMilliSeconds(m.MilliSecond())
+		}
+
+		m.StartOf("millisecond")
+
+	case "millisecond", "ms":
+		if m.MicroSecond(true) > 0 {
+			m.SubMicroSeconds(m.MicroSecond(true))
+		}
+
+		m.StartOf("microsecond")
+
+	case "microsecond", "us":
+		if m.NanoSecond(true) > 0 {
+			m.SubNanoSeconds(m.NanoSecond(true))
+		}
+
+		m.StartOf("nanosecond")
+
+	case "nanosecond", "ns":
+		// nothing to do
 
 	}
 
@@ -804,11 +881,33 @@ func (m *Moment) EndOf(key string) *Moment {
 		if m.Minute() < 59 {
 			m.AddMinutes(59 - m.Minute())
 		}
+
+		m.EndOf("minute")
 	case "minute", "m":
 		if m.Second() < 59 {
 			m.AddSeconds(59 - m.Second())
 		}
+
+		m.EndOf("second")
 	case "second", "s":
+		if m.MilliSecond() < 999 {
+			m.AddMilliSeconds(999 - m.MilliSecond())
+		}
+
+		m.EndOf("millisecond")
+	case "millisecond", "ms":
+		if m.MicroSecond(true) < 999 {
+			m.AddMicroSeconds(999 - m.MicroSecond(true))
+		}
+
+		m.EndOf("microsecond")
+	case "microsecond", "us":
+		if m.NanoSecond(true) < 999 {
+			m.AddNanoSeconds(999 - m.NanoSecond(true))
+		}
+
+		m.EndOf("nanosecond")
+	case "nanosecond", "ns":
 
 	}
 
@@ -917,6 +1016,14 @@ func (m *Moment) GoBackToMonth(month time.Month, previous bool) *Moment {
 	}
 
 	return m.SubMonths(diff * -1)
+}
+
+func (m *Moment) SetNanoSecond(nanoseconds int) *Moment {
+	if nanoseconds >= 0 && nanoseconds <= 1000000000 {
+		return m.AddNanoSeconds(nanoseconds - m.NanoSecond(false))
+	}
+
+	return m
 }
 
 func (m *Moment) SetSecond(seconds int) *Moment {
@@ -1182,4 +1289,11 @@ func (m *Moment) IsLeapYear() bool {
 // Custom
 func (m *Moment) Range(start Moment, end Moment) bool {
 	return m.IsAfter(start) && m.IsBefore(end)
+}
+
+func rightPad2Len(s string, padStr string, overallLen int) string {
+	var padCountInt int
+	padCountInt = 1 + ((overallLen - len(padStr)) / len(padStr))
+	var retStr = s + strings.Repeat(padStr, padCountInt)
+	return retStr[:overallLen]
 }
